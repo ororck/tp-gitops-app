@@ -31,6 +31,19 @@ if [ -z "$EXISTING" ]; then
   }" >/dev/null
 fi
 
+OWNER_ID=$(gh api "repos/$GITHUB_REPO" --jq .owner.id)
+REPO_ID=$(gh api "repos/$GITHUB_REPO" --jq .id)
+IMMUTABLE_NAME="github-main-immutable"
+EXISTING=$(az ad app federated-credential list --id "$APP_ID" --query "[?name=='$IMMUTABLE_NAME'].name" -o tsv)
+if [ -z "$EXISTING" ]; then
+  az ad app federated-credential create --id "$APP_ID" --parameters "{
+    \"name\": \"$IMMUTABLE_NAME\",
+    \"issuer\": \"https://token.actions.githubusercontent.com\",
+    \"subject\": \"repo:${GITHUB_REPO%%/*}@$OWNER_ID/${GITHUB_REPO##*/}@$REPO_ID:ref:refs/heads/$GITHUB_BRANCH\",
+    \"audiences\": [\"api://AzureADTokenExchange\"]
+  }" >/dev/null
+fi
+
 ACR_ID=$(az acr show --name "$ACR_NAME" --resource-group "$RESOURCE_GROUP" --query id -o tsv)
 SP_OBJECT_ID=$(az ad sp show --id "$APP_ID" --query id -o tsv)
 HAS_ROLE=$(az role assignment list --assignee "$SP_OBJECT_ID" --scope "$ACR_ID" --role AcrPush --query "length(@)" -o tsv)
