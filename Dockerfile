@@ -1,4 +1,4 @@
-FROM golang:1.26 as builder
+FROM golang:1.26 AS builder
 
 WORKDIR /app
 
@@ -8,11 +8,11 @@ RUN go mod download
 
 # Build
 COPY . .
-RUN CGO_ENABLED=0 go build -o api ./cmd/api
-RUN CGO_ENABLED=0 go build -o books ./cmd/books
-RUN CGO_ENABLED=0 go build -o movies ./cmd/movies
+RUN CGO_ENABLED=0 go build -o api ./cmd/api \
+    && CGO_ENABLED=0 go build -o books ./cmd/books \
+    && CGO_ENABLED=0 go build -o movies ./cmd/movies
 
-FROM gcr.io/distroless/static-debian12 as runtime
+FROM gcr.io/distroless/static-debian12:nonroot AS runtime
 
 WORKDIR /app
 
